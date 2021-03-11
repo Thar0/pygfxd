@@ -1,4 +1,4 @@
-## libgfxd
+## pygfxd
 
 Python bindings for [libgfxd](https://github.com/glankk/libgfxd/)
 

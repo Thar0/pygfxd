@@ -65,14 +65,14 @@ gfxd_f3dex2 = gfx_ucode_t.in_dll(lgfxd, "gfxd_f3dex2")
 # endian
 class GfxdEndian(IntEnum):
     """ gfxd_endian_* """
-    big = auto()
+    big = 0
     little = auto()
     host = auto()
 
 # cap
 class GfxdCap(IntEnum):
     """ gfxd_* """
-    stop_on_invalid = auto()
+    stop_on_invalid = 0
     stop_on_end = auto()
     emit_dec_color = auto()
     emit_q_macro = auto()
@@ -81,14 +81,14 @@ class GfxdCap(IntEnum):
 # arg format
 class GfxdArgfmt(IntEnum):
     """ gfxd_argfmt_* """
-    i = auto()
+    i = 0
     u = auto()
     f = auto()
 
 # macro ids
 class GfxdMacroId(IntEnum):
     """ gfxd_* """
-    Invalid = auto()
+    Invalid = 0
     DPFillRectangle = auto()
     DPFullSync = auto()
     DPLoadSync = auto()
@@ -229,7 +229,7 @@ class GfxdMacroId(IntEnum):
 # argument types
 class GfxdArgType(IntEnum):
     """ gfxd_* """
-    Word = auto()
+    Word = 0
     Opcode = auto()
     Coordi = auto()
     Coordq = auto()

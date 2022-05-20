@@ -1,6 +1,9 @@
 __pycache__/
+build/
+pygfxd.egg-info/
 
 *.a
 *.so
 *.dll
 *.dynlib
+*.whl

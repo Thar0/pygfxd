@@ -49,7 +49,7 @@ def free_buffers_callbacks():
     __gfxd_buffers_callbacks.clear()
 
 # Load the shared library into ctypes
-lgfxd = CDLL(os.path.dirname(os.path.realpath(__file__)) + os.sep + "libgfxd.so")
+lgfxd = CDLL(os.path.join(os.path.dirname(__file__), "libgfxd.so"))
 
 # ====================================================================
 #   Constants

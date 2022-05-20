@@ -24,10 +24,16 @@ class build_ext(build_ext_orig):
             return ext_name + '.so'
         return super().get_ext_filename(ext_name)
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
     name="pygfxd",
     version="1.0.0",
+    author="Tharo",
+    description="Python bindings for libgfxd",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     py_modules = ["pygfxd"],
     ext_modules=[
         CTypesExtension(

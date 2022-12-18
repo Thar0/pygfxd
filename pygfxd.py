@@ -388,7 +388,7 @@ def gfxd_input_callback(fn: Callable[[bytes, int], int]) -> None:
     """
     cb =  CFUNCTYPE(c_int, c_void_p, c_int)(fn)
     __gfxd_buffers_callbacks.update({102 : cb})
-    lgfxd.gfxd_macro_fn(cb)
+    lgfxd.gfxd_input_callback(cb)
 
 lgfxd.gfxd_output_callback.argtypes = [CFUNCTYPE(c_int, c_char_p, c_int)]
 lgfxd.gfxd_output_callback.restype = None
@@ -401,7 +401,7 @@ def gfxd_output_callback(fn: Callable[[bytes, int], int]) -> None:
     """
     cb = CFUNCTYPE(c_int, c_char_p, c_int)(fn)
     __gfxd_buffers_callbacks.update({103 : cb})
-    lgfxd.gfxd_macro_fn(cb)
+    lgfxd.gfxd_output_callback(cb)
 
 # ====================================================================
 #   Handlers

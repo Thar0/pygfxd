@@ -20,9 +20,12 @@ def uint_bits_to_float(u):
     return struct.unpack(">f", struct.pack(">I", u))[0]
 
 # target types
+gfxd_disas_fn_t = CFUNCTYPE(c_int, c_void_p, c_uint32, c_uint32)
+gfxd_combine_fn_t = CFUNCTYPE(c_int, c_void_p, c_void_p, c_int)
+
 class gfx_ucode(Structure):
-    _fields_=[("disas_fn",  CFUNCTYPE(c_void_p, c_int32, c_int32)),
-              ("combine_fn", CFUNCTYPE(c_void_p, c_int)),
+    _fields_=[("disas_fn",  gfxd_disas_fn_t),
+              ("combine_fn", gfxd_combine_fn_t),
               ("arg_tbl",   c_void_p),
               ("macro_tbl", c_void_p)]
 

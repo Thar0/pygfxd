@@ -8,7 +8,7 @@ C_FILES := f3dex2.c
 BIN_FILES := $(C_FILES:.c=.bin)
 
 all: $(BIN_FILES)
-	python3 test.py
+	./test.py
 
 .PHONY: all
 

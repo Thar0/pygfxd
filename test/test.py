@@ -50,6 +50,28 @@ def parse_syms(txt: str):
     return syms
 
 
+@dataclass
+class TestData:
+    syms: list[Sym]
+    data: memoryview
+
+
+def setUpModule():
+    global TEST_DATA
+
+    stem = "f3dex2"
+    syms = parse_syms((DIR / f"{stem}.txt").read_text())
+    data = memoryview((DIR / f"{stem}.bin").read_bytes())
+
+    TEST_DATA = TestData(syms, data)
+
+
+def tearDownModule():
+    global TEST_DATA
+
+    del TEST_DATA
+
+
 import sys
 
 sys.path.insert(0, str(DIR.absolute().parent))
@@ -62,7 +84,187 @@ assert Path(pygfxd.__file__).is_relative_to(DIR.absolute().parent), pygfxd.__fil
 from pygfxd import *
 
 
-def test_one(name: str, data: memoryview):
+import unittest
+
+import tempfile
+
+
+class TestInputOutput(unittest.TestCase):
+    """Test gfxd_input_ and gfxd_output_"""
+
+    def setUp(self):
+        self.data: list[Sym, memoryview, str] = []
+        for sym in TEST_DATA.syms:
+            data = bytes(TEST_DATA.data[sym.offset :][: sym.size])
+            expected = {
+                "emptyDList": "gsSPEndDisplayList()",
+                "oneTriDList": "gsSPVertex(0x42042069, 3, 0)gsSP1Triangle(0, 1, 2, 0)gsSPEndDisplayList()",
+                "setLights1DList": "gsSPSetLights1(*(Lightsn *)0x09000000)",
+            }[sym.name]
+            self.data.append((sym, data, expected))
+
+    def test_gfxd_input_buffer(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual(expected, gfxd_buffer_to_string(outbuf))
+
+    def test_gfxd_input_fd(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                with tempfile.TemporaryFile() as input_file:
+                    input_file.write(data)
+                    input_file.seek(0)
+                    gfxd_input_fd(input_file)
+
+                    outb = bytes(1000)
+                    outbuf = gfxd_output_buffer(outb, len(outb))
+
+                    gfxd_target(gfxd_f3dex2)
+                    gfxd_endian(GfxdEndian.big, 4)
+
+                    gfxd_execute()
+
+                    self.assertEqual(expected, gfxd_buffer_to_string(outbuf))
+
+    def test_gfxd_input_callback(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                remaining_data = [data]
+
+                def callback(bufP, count):
+                    newdata = remaining_data[0][:count]
+                    from ctypes import c_char
+
+                    buftype = c_char * len(newdata)
+                    buf = buftype.from_address(bufP)
+                    buf[: len(newdata)] = newdata
+                    remaining_data[0] = remaining_data[0][len(newdata) :]
+                    return len(newdata)
+
+                gfxd_input_callback(callback)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual(expected, gfxd_buffer_to_string(outbuf))
+
+    def test_gfxd_output_buffer(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual(expected, gfxd_buffer_to_string(outbuf))
+
+    def test_gfxd_output_fd(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                with tempfile.TemporaryFile() as output_file:
+                    gfxd_input_buffer(data)
+
+                    gfxd_output_fd(output_file)
+
+                    gfxd_target(gfxd_f3dex2)
+                    gfxd_endian(GfxdEndian.big, 4)
+
+                    gfxd_execute()
+
+                    output_file.seek(0)
+                    self.assertEqual(expected, output_file.read().decode())
+
+    def test_gfxd_output_callback(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                output = io.BytesIO()
+
+                def callback(buf, count):
+                    self.assertEqual(count, len(buf))
+                    output.write(buf)
+                    return count
+
+                gfxd_input_buffer(data)
+
+                gfxd_output_callback(callback)
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual(expected, output.getvalue().decode())
+
+
+class TestMacroInfo(unittest.TestCase):
+    def setUp(self):
+        self.data: list[Sym, memoryview] = []
+        for sym in TEST_DATA.syms:
+            data = bytes(TEST_DATA.data[sym.offset :][: sym.size])
+            self.data.append((sym, data))
+
+    def test_gfxd_foreach_pkt(self):
+        for sym, data in self.data:
+            expected = {
+                "emptyDList": ["gsSPEndDisplayList"],
+                "oneTriDList": ["gsSPVertex", "gsSP1Triangle", "gsSPEndDisplayList"],
+                "setLights1DList": ["gsSPNumLights", "gsSPLight", "gsSPLight"],
+            }[sym.name]
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                packets_names = []
+
+                def foreach_pkt_fn():
+                    packets_names.append(gfxd_macro_name())
+                    return 0
+
+                def macro_fn():
+                    gfxd_foreach_pkt(foreach_pkt_fn)
+                    return 0
+
+                gfxd_macro_fn(macro_fn)
+
+                gfxd_execute()
+
+                self.assertEqual(packets_names, expected)
+
+
+class TestMisc(unittest.TestCase):
+    def test_generic(self):
+        for sym in TEST_DATA.syms:
+            with self.subTest(sym):
+                test_one(
+                    sym.name,
+                    TEST_DATA.data[sym.offset :][: sym.size],
+                    silent=True,
+                )
+
+
+def test_one(name: str, data, silent=False):
     def macro_fn():
         gfxd_puts("    ")
         gfxd_macro_dflt()
@@ -83,7 +285,8 @@ def test_one(name: str, data: memoryview):
     with temp_file.open("rb") as input_file:
         gfxd_input_fd(input_file)
 
-        gfxd_output_fd(sys.stdout)
+        if not silent:
+            gfxd_output_fd(sys.stdout)
 
         if outb:
             outbuf = gfxd_output_buffer(outb, len(outb))
@@ -102,21 +305,13 @@ def test_one(name: str, data: memoryview):
     gfxd_puts("};\n")
 
     if outb:
-        print(gfxd_buffer_to_string(outbuf))
+        if not silent:
+            print(gfxd_buffer_to_string(outbuf))
 
-    print("Found Vtx segments:")
-    print([f"D_{seg:08X}" for seg in all_vertices])
-
-
-def test(stem: str):
-    syms = parse_syms((DIR / f"{stem}.txt").read_text())
-    data = memoryview((DIR / f"{stem}.bin").read_bytes())
-
-    for sym in syms:
-        print(sym)
-        print()
-        test_one(sym.name, data[sym.offset :][: sym.size])
-        print()
+    if not silent:
+        print("Found Vtx segments:")
+        print([f"D_{seg:08X}" for seg in all_vertices])
 
 
-test("f3dex2")
+if __name__ == "__main__":
+    unittest.main()

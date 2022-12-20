@@ -216,6 +216,44 @@ class TestInputOutput(unittest.TestCase):
                 self.assertEqual(expected, output.getvalue().decode())
 
 
+class TestArgumentCallback(unittest.TestCase):
+    def setUp(self):
+        self.data: list[Sym, memoryview] = []
+        for sym in TEST_DATA.syms:
+            data = bytes(TEST_DATA.data[sym.offset :][: sym.size])
+            self.data.append((sym, data))
+
+    def test_gfxd_vtx_callback(self):
+        for sym, data in self.data:
+            expected = {
+                "emptyDList": [],
+                "oneTriDList": [(0x42042069, 3)],
+                "setLights1DList": [],
+            }[sym.name]
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                verts = []
+
+                def callback(vtx, num):
+                    verts.append((vtx, num))
+                    return 0
+
+                try:
+                    gfxd_vtx_callback(callback)
+
+                    gfxd_execute()
+                finally:
+                    def callback(vtx, num):
+                        return 0
+                    gfxd_vtx_callback(callback)
+
+                self.assertEqual(verts, expected)
+
+
 class TestMacroInfo(unittest.TestCase):
     def setUp(self):
         self.data: list[Sym, memoryview] = []

@@ -131,9 +131,11 @@ without any separation between macros, which is probably not what you want.
 
 ---
 
+##### `typedef int gfxd_macro_fn_t(void)`
 ##### `void gfxd_macro_fn(gfxd_macro_fn_t *fn)`
 Set `fn` to be the macro handler function. `fn` can be null, in which case the
-handler is reset to the default.
+handler is reset to the default. If `fn` returns a value other than 0, execution
+stops (see `gfxd_execute`).
 
 ---
 
@@ -144,6 +146,7 @@ callback returns zero, or if there is no callback for the given argument.
 
 ---
 
+##### `typedef void gfxd_arg_fn_t(int arg_num)`
 ##### `void gfxd_arg_fn(gfxd_arg_fn_t *fn)`
 Set `fn` to be the argument handler function, called by `gfxd_macro_dflt`,
 for each argument in the current macro, not counting the dynamic display list
@@ -229,10 +232,17 @@ Set the callback function for lookat array arguments. The argument type is
 
 ---
 
-##### `typedef int gfxd_light_fn_t(uint32_t light, int32_t count)`
+##### `typedef int gfxd_light_fn_t(uint32_t light)`
 ##### `void gfxd_light_callback(gfxd_light_fn_t *fn)`
-Set the callback function for light array arguments. The argument type is
-`gfxd_Lightptr`. The number of light structures is in `count`.
+Set the callback function for diffuse (`Light *`) or ambient (`Ambient *`)
+light arguments. The argument type is `gfxd_Lightptr`.
+
+---
+
+##### `typedef int gfxd_lightsn_fn_t(uint32_t lightsn, int32_t num)`
+##### `void gfxd_lightsn_callback(gfxd_lightsn_fn_t *fn)`
+Set the callback function for Lights_M_ arguments. The argument type is
+`gfxd_Lightsn`. The number of diffuse lights used is in `num`.
 
 ---
 
@@ -365,6 +375,19 @@ at zero when `gfxd_execute` is called.
 
 ##### `int gfxd_macro_packets()`
 Returns the number of `Gfx` packets within the current macro.
+
+---
+
+##### `int gfxd_foreach_pkt(int (*fn)(void))`
+
+Run `fn` for each individual sub-packet the current macro is made up of. During
+execution of `fn`, the current sub-packet becomes the current macro that is
+used by other macro information functions. If the current macro is made up of
+only a single packet it is processed as a single sub-packet, there is no need
+to check if the current macro is a multi-packet macro. If at any point `fn`
+returns a value other than 0, the remaining sub-packets are skipped and the
+return value of `fn` is returned. If `fn` is null no processing is done and 0 is
+returned.
 
 ---
 

@@ -20,9 +20,12 @@ def uint_bits_to_float(u):
     return struct.unpack(">f", struct.pack(">I", u))[0]
 
 # target types
+gfxd_disas_fn_t = CFUNCTYPE(c_int, c_void_p, c_uint32, c_uint32)
+gfxd_combine_fn_t = CFUNCTYPE(c_int, c_void_p, c_void_p, c_int)
+
 class gfx_ucode(Structure):
-    _fields_=[("disas_fn",  CFUNCTYPE(c_void_p, c_int32, c_int32)),
-              ("combine_fn", CFUNCTYPE(c_void_p, c_int)),
+    _fields_=[("disas_fn",  gfxd_disas_fn_t),
+              ("combine_fn", gfxd_combine_fn_t),
               ("arg_tbl",   c_void_p),
               ("macro_tbl", c_void_p)]
 
@@ -388,7 +391,7 @@ def gfxd_input_callback(fn: Callable[[bytes, int], int]) -> None:
     """
     cb =  CFUNCTYPE(c_int, c_void_p, c_int)(fn)
     __gfxd_buffers_callbacks.update({102 : cb})
-    lgfxd.gfxd_macro_fn(cb)
+    lgfxd.gfxd_input_callback(cb)
 
 lgfxd.gfxd_output_callback.argtypes = [CFUNCTYPE(c_int, c_char_p, c_int)]
 lgfxd.gfxd_output_callback.restype = None
@@ -401,7 +404,7 @@ def gfxd_output_callback(fn: Callable[[bytes, int], int]) -> None:
     """
     cb = CFUNCTYPE(c_int, c_char_p, c_int)(fn)
     __gfxd_buffers_callbacks.update({103 : cb})
-    lgfxd.gfxd_macro_fn(cb)
+    lgfxd.gfxd_output_callback(cb)
 
 # ====================================================================
 #   Handlers
@@ -431,6 +434,7 @@ def gfxd_macro_fn(fn: Callable[[], int]) -> None:
         int gfxd_macro_fn_t(void)
 
     fn can be None, in which case the handler is reset to the default.
+    If `fn` returns a value other than 0, execution stops (see `gfxd_execute`).
     """
     if fn is None:
         lgfxd.gfxd_macro_fn(None)
@@ -592,20 +596,33 @@ def gfxd_lookat_callback(fn: Callable[[int, int], int]) -> None:
     __gfxd_buffers_callbacks.update({6 : cb})
     lgfxd.gfxd_lookat_callback(cb)
 
-lgfxd.gfxd_light_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
+lgfxd.gfxd_light_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_light_callback.restype = None
-def gfxd_light_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_light_callback(fn: Callable[[int], int]) -> None:
     """
-    Set the callback function for light array arguments.
-        int gfxd_light_fn_t(uint32_t light, int32_t count)
+    Set the callback function for diffuse (`Light *`) or ambient (`Ambient *`) light arguments.
+        int gfxd_light_fn_t(uint32_t light)
 
     The argument type is GfxdArgType.Lightptr.
-
-    The number of light structures is in count.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
+    cb = CFUNCTYPE(c_int, c_uint32)(fn)
     __gfxd_buffers_callbacks.update({7 : cb})
     lgfxd.gfxd_light_callback(cb)
+
+lgfxd.gfxd_lightsn_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
+lgfxd.gfxd_lightsn_callback.restype = None
+def gfxd_lightsn_callback(fn: Callable[[int, int], int]) -> None:
+    """
+    Set the callback function for Lights_M_ arguments.
+        int gfxd_lightsn_fn_t(uint32_t lightsn, int32_t num)
+
+    The argument type is GfxdArgType.Lightsn.
+
+    The number of diffuse lights used is in num.
+    """
+    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
+    __gfxd_buffers_callbacks.update({7.5 : cb})
+    lgfxd.gfxd_lightsn_callback(cb)
 
 lgfxd.gfxd_seg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
 lgfxd.gfxd_seg_callback.restype = None
@@ -852,6 +869,24 @@ def gfxd_macro_packets() -> int:
     Returns the number of Gfx packets within the current macro.
     """
     return lgfxd.gfxd_macro_packets()
+
+lgfxd.gfxd_foreach_pkt.argtypes = [CFUNCTYPE(c_int)]
+lgfxd.gfxd_foreach_pkt.restype = c_int
+def gfxd_foreach_pkt(fn: Callable[[], int]) -> int:
+    """
+    int fn(void);
+
+    Run `fn` for each individual sub-packet the current macro is made up of. During
+    execution of `fn`, the current sub-packet becomes the current macro that is
+    used by other macro information functions. If the current macro is made up of
+    only a single packet it is processed as a single sub-packet, there is no need
+    to check if the current macro is a multi-packet macro. If at any point `fn`
+    returns 0, the remaining sub-packets are skipped and the return value of `fn`
+    is returned. If `fn` is null no processing is done and 0 is returned.
+    """
+    cb = CFUNCTYPE(c_int)(fn)
+    __gfxd_buffers_callbacks.update({10000.5 : cb})
+    return lgfxd.gfxd_foreach_pkt(cb)
 
 lgfxd.gfxd_macro_data.argtypes = None
 lgfxd.gfxd_macro_data.restype = c_void_p

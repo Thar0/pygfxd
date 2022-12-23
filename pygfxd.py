@@ -373,6 +373,7 @@ def gfxd_output_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_
 
         buffer = create_string_buffer(buf, size)
         __gfxd_buffers_callbacks[gfxd_output_buffer] = buffer
+        lgfxd.gfxd_output_buffer(buffer, size)
         return buffer
     else:
         if size != 0:

@@ -356,7 +356,7 @@ def gfxd_input_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_p
             else:
                 raise ValueError("Cannot use a null buffer of non-0 size")
         lgfxd.gfxd_input_buffer(c_void_p(), 0)
-        del __gfxd_buffers_callbacks[gfxd_input_buffer]
+        __gfxd_buffers_callbacks.pop(gfxd_input_buffer, None)
         return None
 
 lgfxd.gfxd_output_buffer.argtypes = [c_char_p, c_int]
@@ -382,7 +382,7 @@ def gfxd_output_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_
             else:
                 raise ValueError("Cannot use a null buffer of non-0 size")
         lgfxd.gfxd_output_buffer(c_void_p(), 0)
-        del __gfxd_buffers_callbacks[gfxd_output_buffer]
+        __gfxd_buffers_callbacks.pop(gfxd_output_buffer, None)
         return None
 
 lgfxd.gfxd_input_fd.argtypes = [c_int]
@@ -417,7 +417,7 @@ def gfxd_input_callback(fn: Union[Callable[[bytes, int], int], None]) -> None:
         lgfxd.gfxd_input_callback(cb)
     else:
         lgfxd.gfxd_input_callback(CFUNCTYPE(c_int, c_void_p, c_int)())
-        del __gfxd_buffers_callbacks[gfxd_input_callback]
+        __gfxd_buffers_callbacks.pop(gfxd_input_callback, None)
 
 lgfxd.gfxd_output_callback.argtypes = [CFUNCTYPE(c_int, c_char_p, c_int)]
 lgfxd.gfxd_output_callback.restype = None
@@ -434,7 +434,7 @@ def gfxd_output_callback(fn: Union[Callable[[bytes, int], int], None]) -> None:
         lgfxd.gfxd_output_callback(cb)
     else:
         lgfxd.gfxd_output_callback(CFUNCTYPE(c_int, c_char_p, c_int)())
-        del __gfxd_buffers_callbacks[gfxd_output_callback]
+        __gfxd_buffers_callbacks.pop(gfxd_output_callback, None)
 
 # ====================================================================
 #   Handlers
@@ -472,7 +472,7 @@ def gfxd_macro_fn(fn: Union[Callable[[], int], None]) -> None:
         lgfxd.gfxd_macro_fn(cb)
     else:
         lgfxd.gfxd_macro_fn(CFUNCTYPE(c_int)())
-        del __gfxd_buffers_callbacks[gfxd_macro_fn]
+        __gfxd_buffers_callbacks.pop(gfxd_macro_fn, None)
 
 lgfxd.gfxd_arg_dflt.argtypes = [c_int]
 lgfxd.gfxd_arg_dflt.restype = None
@@ -504,7 +504,7 @@ def gfxd_arg_fn(fn: Union[Callable[[int], None], None]) -> None:
         lgfxd.gfxd_arg_fn(cb)
     else:
         lgfxd.gfxd_arg_fn(CFUNCTYPE(None, c_int)())
-        del __gfxd_buffers_callbacks[gfxd_arg_fn]
+        __gfxd_buffers_callbacks.pop(gfxd_arg_fn, None)
 
 # ====================================================================
 #   Argument Callbacks
@@ -545,7 +545,7 @@ def gfxd_tlut_callback(fn: Union[Callable[[int, int, int], int], None]) -> None:
         lgfxd.gfxd_tlut_callback(cb)
     else:
         lgfxd.gfxd_tlut_callback(CFUNCTYPE(c_int, c_uint32, c_int32, c_int32)())
-        del __gfxd_buffers_callbacks[gfxd_tlut_callback]
+        __gfxd_buffers_callbacks.pop(gfxd_tlut_callback, None)
 
 lgfxd.gfxd_timg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32, c_int32, c_int32)]
 lgfxd.gfxd_timg_callback.restype = None
@@ -565,7 +565,7 @@ def gfxd_timg_callback(fn: Union[Callable[[int, int, int, int, int, int], int], 
         lgfxd.gfxd_timg_callback(cb)
     else:
         lgfxd.gfxd_timg_callback(CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32, c_int32, c_int32)())
-        del __gfxd_buffers_callbacks[gfxd_timg_callback]
+        __gfxd_buffers_callbacks.pop(gfxd_timg_callback, None)
 
 lgfxd.gfxd_cimg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32)]
 lgfxd.gfxd_cimg_callback.restype = None

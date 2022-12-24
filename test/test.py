@@ -215,6 +215,74 @@ class TestInputOutput(unittest.TestCase):
 
                 self.assertEqual(expected, output.getvalue().decode())
 
+    def test_nulling_input_callback(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                gfxd_input_callback(None)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual("", gfxd_buffer_to_string(outbuf))
+
+    def test_nulling_input_buffer(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                gfxd_input_buffer(None)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual("", gfxd_buffer_to_string(outbuf))
+
+    def test_nulling_output_callback(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_output_callback(None)
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual("", gfxd_buffer_to_string(outbuf))
+
+    def test_nulling_output_buffer(self):
+        for sym, data, expected in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                outb = bytes(1000)
+                outbuf = gfxd_output_buffer(outb, len(outb))
+
+                gfxd_output_buffer(None)
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                gfxd_execute()
+
+                self.assertEqual("", gfxd_buffer_to_string(outbuf))
+
 
 class TestArgumentCallback(unittest.TestCase):
     def setUp(self):
@@ -222,6 +290,31 @@ class TestArgumentCallback(unittest.TestCase):
         for sym in TEST_DATA.syms:
             data = bytes(TEST_DATA.data[sym.offset :][: sym.size])
             self.data.append((sym, data))
+
+    def test_nulling_callbacks(self):
+        for sym, data in self.data:
+            with self.subTest(sym):
+                gfxd_input_buffer(data)
+
+                gfxd_target(gfxd_f3dex2)
+                gfxd_endian(GfxdEndian.big, 4)
+
+                callbacks_run = []
+
+                def make_callback(name):
+                    def callback(*args):
+                        callbacks_run.append(name)
+                        return 0
+
+                    return callback
+
+                # TODO make a dlist that would trigger more callbacks and add them here
+                gfxd_vtx_callback(make_callback("vtx"))
+                gfxd_vtx_callback(None)
+
+                gfxd_execute()
+
+                self.assertEqual(callbacks_run, [])
 
     def test_gfxd_vtx_callback(self):
         for sym, data in self.data:
@@ -247,9 +340,7 @@ class TestArgumentCallback(unittest.TestCase):
 
                     gfxd_execute()
                 finally:
-                    def callback(vtx, num):
-                        return 0
-                    gfxd_vtx_callback(callback)
+                    gfxd_vtx_callback(None)
 
                 self.assertEqual(verts, expected)
 

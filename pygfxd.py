@@ -376,7 +376,7 @@ def gfxd_output_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_
                 size = 0
             else:
                 raise ValueError("Cannot use a null buffer of non-0 size")
-        lgfxd.gfxd_output_buffer(c_void_p(), 0)
+        lgfxd.gfxd_output_buffer(c_char_p(), 0)
         __gfxd_buffers_callbacks.pop(gfxd_output_buffer, None)
         return None
 
@@ -676,7 +676,7 @@ def gfxd_seg_callback(fn: Callable[[int, int], int]) -> None:
 
 lgfxd.gfxd_vtx_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
 lgfxd.gfxd_vtx_callback.restype = None
-def gfxd_vtx_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_vtx_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for vertex array arguments, compatible with the C function type
         int gfxd_vtx_fn_t(uint32_t vtx, int32_t num)
@@ -685,9 +685,14 @@ def gfxd_vtx_callback(fn: Callable[[int, int], int]) -> None:
 
     The number of vertex structures is in num.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_vtx_callback : cb})
-    lgfxd.gfxd_vtx_callback(cb)
+    if fn is not None:
+        cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
+        __gfxd_buffers_callbacks[gfxd_vtx_callback] = cb
+        lgfxd.gfxd_vtx_callback(cb)
+    else:
+        lgfxd.gfxd_vtx_callback(CFUNCTYPE(c_int, c_uint32, c_int32)())
+        __gfxd_buffers_callbacks.pop(gfxd_vtx_callback)
+
 
 lgfxd.gfxd_vp_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_vp_callback.restype = None

@@ -376,7 +376,7 @@ def gfxd_output_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_
                 size = 0
             else:
                 raise ValueError("Cannot use a null buffer of non-0 size")
-        lgfxd.gfxd_output_buffer(c_void_p(), 0)
+        lgfxd.gfxd_output_buffer(c_char_p(), 0)
         __gfxd_buffers_callbacks.pop(gfxd_output_buffer, None)
         return None
 

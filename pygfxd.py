@@ -691,7 +691,7 @@ def gfxd_vtx_callback(fn: Union[Callable[[int, int], int], None]) -> None:
         lgfxd.gfxd_vtx_callback(cb)
     else:
         lgfxd.gfxd_vtx_callback(CFUNCTYPE(c_int, c_uint32, c_int32)())
-        __gfxd_buffers_callbacks.pop(gfxd_vtx_callback)
+        __gfxd_buffers_callbacks.pop(gfxd_vtx_callback, None)
 
 
 lgfxd.gfxd_vp_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]

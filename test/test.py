@@ -311,6 +311,7 @@ class TestArgumentCallback(unittest.TestCase):
                 # TODO make a dlist that would trigger more callbacks and add them here
                 gfxd_vtx_callback(make_callback("vtx"))
                 gfxd_vtx_callback(None)
+                gfxd_vtx_callback(None) # not a typo: test nulling twice
 
                 gfxd_execute()
 

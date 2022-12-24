@@ -6,18 +6,13 @@
 
 import io, os, struct
 from enum import IntEnum, auto
-from ctypes import Structure, CFUNCTYPE, POINTER, create_string_buffer, byref, CDLL, c_void_p, c_char_p, c_uint32, c_int32, c_int, c_ubyte
+import ctypes
+from ctypes import Structure, CFUNCTYPE, POINTER, create_string_buffer, byref, CDLL, c_void_p, c_char_p, c_uint32, c_int32, c_int, c_ubyte, c_float
 from typing import Callable, Tuple, Union
 
 # ====================================================================
 #   Library Internals
 # ====================================================================
-
-def uint_to_sint(u):
-    return struct.unpack(">i", struct.pack(">I", u))[0]
-
-def uint_bits_to_float(u):
-    return struct.unpack(">f", struct.pack(">I", u))[0]
 
 # target types
 gfxd_disas_fn_t = CFUNCTYPE(c_int, c_void_p, c_uint32, c_uint32)
@@ -998,24 +993,38 @@ def gfxd_arg_fmt(arg_num: int) -> GfxdArgfmt:
     return GfxdArgfmt(lgfxd.gfxd_arg_fmt(arg_num))
 
 lgfxd.gfxd_arg_value.argtypes = [c_int]
-lgfxd.gfxd_arg_value.restype = POINTER(c_int * 1)
-def gfxd_arg_value(arg_num: int) -> Tuple[int, int, float]:
+lgfxd.gfxd_arg_value.restype = POINTER(c_uint32)
+def gfxd_arg_value(arg_num: int) -> Union[Tuple[int, int, float], None]:
     """
     Returns a tuple of different representations of the argument value:
         (signed int, unsigned int, float)
     """
-    raw = lgfxd.gfxd_arg_value(arg_num).contents[0]
-    return uint_to_sint(raw), raw, uint_bits_to_float(raw)
+    ptr = lgfxd.gfxd_arg_value(arg_num)
+    if ptr:
+        return (
+            ctypes.cast(ptr, POINTER(c_int32)).contents.value,
+            ctypes.cast(ptr, POINTER(c_uint32)).contents.value,
+            ctypes.cast(ptr, POINTER(c_float)).contents.value,
+        )
+    else:
+        return None
 
 lgfxd.gfxd_value_by_type.argtypes = None
-lgfxd.gfxd_value_by_type.restype = POINTER(c_uint32 * 1)
-def gfxd_value_by_type(type: GfxdArgType, idx: int) -> Tuple[int, int, float]:
+lgfxd.gfxd_value_by_type.restype = POINTER(c_uint32)
+def gfxd_value_by_type(type: GfxdArgType, idx: int) -> Union[Tuple[int, int, float], None]:
     """
     Returns a tuple of different representations of the argument value:
         (signed int, unsigned int, float)
     """
-    raw = lgfxd.gfxd_value_by_type(int(type), idx).contents[0]
-    return uint_to_sint(raw), raw, uint_bits_to_float(raw)
+    ptr = lgfxd.gfxd_value_by_type(int(type), idx)
+    if ptr:
+        return (
+            ctypes.cast(ptr, POINTER(c_int32)).contents.value,
+            ctypes.cast(ptr, POINTER(c_uint32)).contents.value,
+            ctypes.cast(ptr, POINTER(c_float)).contents.value,
+        )
+    else:
+        return None
 
 lgfxd.gfxd_arg_valid.argtypes = [c_int]
 lgfxd.gfxd_arg_valid.restype = c_int

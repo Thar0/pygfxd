@@ -50,7 +50,12 @@ setup(
                 "libgfxd/uc_f3dexb.c",
                 "libgfxd/uc.c",
             ],
-            include_dirs=["libgfxd"]
+            include_dirs=["libgfxd"],
+            extra_compile_args = [
+                "-std=c11",
+                "-Wall",
+                "-g",
+            ],
         ),
     ],
     cmdclass={'build_ext': build_ext},

@@ -5,11 +5,14 @@
 #ifdef CONFIG_MT
 # ifdef _MSC_VER
 #  define TLOCAL __declspec(thread)
+#  define DLLEXPORT __declspec(dllexport)
 # else
 #  define TLOCAL _Thread_local
+#  define DLLEXPORT
 # endif
 #else
 # define TLOCAL
+# define DLLEXPORT
 #endif
 
 #define UCFUNC static inline

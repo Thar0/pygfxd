@@ -15,6 +15,7 @@ class build_ext(build_ext_orig):
         if self.compiler.compiler_type == "msvc":
             for e in self.extensions:
                 e.extra_compile_args=["/std:c11"]
+                e.extra_link_args=["/DEF:pygfxd.def"]
         return super().build_extension(ext)
 
     def get_export_symbols(self, ext):

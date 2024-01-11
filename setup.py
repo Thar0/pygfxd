@@ -12,7 +12,7 @@ class CTypesExtension(Extension):
 class build_ext(build_ext_orig):
     def build_extension(self, ext):
         self._ctypes = isinstance(ext, CTypesExtension)
-        if self.compiler.compiler_type is "msvc":
+        if self.compiler.compiler_type == "msvc":
             for e in self.extensions:
                 e.extra_compile_args=["/std:c11"]
         return super().build_extension(ext)

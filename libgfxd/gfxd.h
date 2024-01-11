@@ -7,6 +7,12 @@ extern "C"
 {
 #endif
 
+#ifdef CONFIG_MT
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
+
 enum
 {
 	gfxd_Word,		/* generic word */
@@ -378,11 +384,11 @@ const gfxd_value_t *gfxd_value_by_type(int type, int idx);
 int gfxd_arg_valid(int arg_num);
 int gfxd_arg_callbacks(int arg_num);
 
-extern const gfxd_ucode_t gfxd_f3d;
-extern const gfxd_ucode_t gfxd_f3db;
-extern const gfxd_ucode_t gfxd_f3dex;
-extern const gfxd_ucode_t gfxd_f3dexb;
-extern const gfxd_ucode_t gfxd_f3dex2;
+extern DLLEXPORT const gfxd_ucode_t gfxd_f3d;
+extern DLLEXPORT const gfxd_ucode_t gfxd_f3db;
+extern DLLEXPORT const gfxd_ucode_t gfxd_f3dex;
+extern DLLEXPORT const gfxd_ucode_t gfxd_f3dexb;
+extern DLLEXPORT const gfxd_ucode_t gfxd_f3dex2;
 
 #ifdef __cplusplus
 }

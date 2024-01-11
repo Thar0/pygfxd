@@ -12,9 +12,10 @@ class CTypesExtension(Extension):
 class build_ext(build_ext_orig):
     def build_extension(self, ext):
         self._ctypes = isinstance(ext, CTypesExtension)
-        if self.compiler.compiler_type is "msvc":
+        if self.compiler.compiler_type == "msvc":
             for e in self.extensions:
                 e.extra_compile_args=["/std:c11"]
+                e.extra_link_args=["/DEF:pygfxd.def"]
         return super().build_extension(ext)
 
     def get_export_symbols(self, ext):
@@ -50,7 +51,12 @@ setup(
                 "libgfxd/uc_f3dexb.c",
                 "libgfxd/uc.c",
             ],
-            include_dirs=["libgfxd"]
+            include_dirs=["libgfxd"],
+            extra_compile_args = [
+                "-std=c11",
+                "-Wall",
+                "-g",
+            ],
         ),
     ],
     cmdclass={'build_ext': build_ext},

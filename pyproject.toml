@@ -1,2 +1,2 @@
 [tool.cibuildwheel]
-test-command = "python -c 'from pygfxd import *'"
+test-command = "python -c \"from pygfxd import *\""

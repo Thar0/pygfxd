@@ -51,4 +51,4 @@ static const struct gfxd_ucode uc =
 	.macro_tbl = macro_tbl,
 };
 
-const gfxd_ucode_t uc_name = &uc;
+DLLEXPORT const gfxd_ucode_t uc_name = &uc;

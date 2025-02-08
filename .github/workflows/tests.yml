@@ -14,7 +14,7 @@ jobs:
         run: gcc -shared -fPIC libgfxd/gfxd.c libgfxd/uc_f3d.c libgfxd/uc_f3db.c libgfxd/uc_f3dex.c libgfxd/uc_f3dex2.c libgfxd/uc_f3dexb.c libgfxd/uc.c -o libgfxd.so
 
       - name: Install cross compiler and binutils
-        run: apt install gcc-mips-linux-gnu binutils-mips-linux-gnu
+        run: sudo apt-get install gcc-mips-linux-gnu binutils-mips-linux-gnu
 
       - name: Build test data
         run: make -C test

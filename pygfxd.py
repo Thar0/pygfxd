@@ -454,9 +454,9 @@ def gfxd_arg_dflt(arg_num: int) -> None:
     """
     lgfxd.gfxd_arg_dflt(arg_num)
 
-lgfxd.gfxd_arg_fn.argtypes = [CFUNCTYPE(c_int)]
+lgfxd.gfxd_arg_fn.argtypes = [CFUNCTYPE(None, c_int)]
 lgfxd.gfxd_arg_fn.restype = None
-def gfxd_arg_fn(fn: Callable[[], int]) -> None:
+def gfxd_arg_fn(fn: Callable[[int], None]) -> None:
     """
     Set fn to be the argument handler function, called by gfxd_macro_dflt, for each
     argument in the current macro, not counting the dynamic display list pointer if
@@ -470,7 +470,7 @@ def gfxd_arg_fn(fn: Callable[[], int]) -> None:
     if fn is None:
         lgfxd.gfxd_arg_fn(None)
         return
-    cb = CFUNCTYPE(c_int)(fn)
+    cb = CFUNCTYPE(None, c_int)(fn)
     __gfxd_buffers_callbacks.update({1001 : cb})
     lgfxd.gfxd_arg_fn(cb)
 

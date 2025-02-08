@@ -330,33 +330,49 @@ class GfxdArgType(IntEnum):
 
 lgfxd.gfxd_input_buffer.argtypes = [c_void_p, c_int]
 lgfxd.gfxd_input_buffer.restype = None
-def gfxd_input_buffer(buf: bytes, size: int = -1) -> c_void_p:
+def gfxd_input_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_p, None]:
     """
     Read input from the buffer pointed to by buf, of size bytes.
     If size is negative, len(buf) is used instead which is
     default.
+    buf may be None to unset the input buffer
     """
-    size = len(buf) if size < 0 else size
+    if buf is not None:
+        size = len(buf) if size < 0 else size
 
-    buffer = create_string_buffer(buf, size)
-    __gfxd_buffers_callbacks.update({gfxd_input_buffer : buffer})
-    lgfxd.gfxd_input_buffer(buffer, size)
-    return buffer
+        buffer = create_string_buffer(buf, size)
+        __gfxd_buffers_callbacks.update({gfxd_input_buffer : buffer})
+        lgfxd.gfxd_input_buffer(buffer, size)
+        return buffer
+    else:
+        if size > 0:
+            raise ValueError("Cannot use a non-zero size with a null buffer")
+        lgfxd.gfxd_input_buffer(c_void_p(), 0)
+        __gfxd_buffers_callbacks.pop(gfxd_input_buffer, None)
+        return None
 
 lgfxd.gfxd_output_buffer.argtypes = [c_char_p, c_int]
 lgfxd.gfxd_output_buffer.restype = None
-def gfxd_output_buffer(buf: bytes, size: int = -1) -> c_void_p:
+def gfxd_output_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_p, None]:
     """
     Output to the buffer pointed to by buf, of size bytes.
     If size is negative, len(buf) is used instead which is
     default.
+    buf may be None to unset the output buffer
     """
-    size = len(buf) if size < 0 else size
+    if buf is not None:
+        size = len(buf) if size < 0 else size
 
-    buffer = create_string_buffer(buf, size)
-    __gfxd_buffers_callbacks.update({gfxd_output_buffer : buffer})
-    lgfxd.gfxd_output_buffer(buffer, size)
-    return buffer
+        buffer = create_string_buffer(buf, size)
+        __gfxd_buffers_callbacks.update({gfxd_output_buffer : buffer})
+        lgfxd.gfxd_output_buffer(buffer, size)
+        return buffer
+    else:
+        if size > 0:
+            raise ValueError("Cannot use a non-zero size with a null buffer")
+        lgfxd.gfxd_output_buffer(c_void_p(), 0)
+        __gfxd_buffers_callbacks.pop(gfxd_output_buffer, None)
+        return None
 
 lgfxd.gfxd_input_fd.argtypes = [c_int]
 lgfxd.gfxd_input_fd.restype = None
@@ -376,7 +392,7 @@ def gfxd_output_fd(stream: io.IOBase) -> None:
 
 lgfxd.gfxd_input_callback.argtypes = [CFUNCTYPE(c_int, c_void_p, c_int)]
 lgfxd.gfxd_input_callback.restype = None
-def gfxd_input_callback(fn: Callable[[bytes, int], int]) -> None:
+def gfxd_input_callback(fn: Union[Callable[[bytes, int], int], None]) -> None:
     """
     Use the provided callback function, fn, compatible with the C function type
         int gfxd_input_fn_t(void *buf, int count)
@@ -384,22 +400,32 @@ def gfxd_input_callback(fn: Callable[[bytes, int], int]) -> None:
     fn should copy at most count bytes to/from buf, and return the number of bytes actually copied.
     The input callback should return 0 to signal end of input.
     """
-    cb =  CFUNCTYPE(c_int, c_void_p, c_int)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_input_callback : cb})
-    lgfxd.gfxd_input_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_void_p, c_int)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_input_callback : cb})
+        lgfxd.gfxd_input_callback(cb)
+    else:
+        lgfxd.gfxd_input_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_input_callback, None)
 
 lgfxd.gfxd_output_callback.argtypes = [CFUNCTYPE(c_int, c_char_p, c_int)]
 lgfxd.gfxd_output_callback.restype = None
-def gfxd_output_callback(fn: Callable[[bytes, int], int]) -> None:
+def gfxd_output_callback(fn: Union[Callable[[bytes, int], int], None]) -> None:
     """
     Use the provided callback function, fn, compatible with C function type
         int gfxd_output_fn_t(const char *buf, int count)
 
     fn should copy at most count bytes to/from buf, and return the number of bytes actually copied.
     """
-    cb = CFUNCTYPE(c_int, c_char_p, c_int)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_output_callback : cb})
-    lgfxd.gfxd_output_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_char_p, c_int)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_output_callback : cb})
+        lgfxd.gfxd_output_callback(cb)
+    else:
+        lgfxd.gfxd_output_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_output_callback, None)
 
 # ====================================================================
 #   Handlers
@@ -423,7 +449,7 @@ def gfxd_macro_dflt() -> int:
 
 lgfxd.gfxd_macro_fn.argtypes = [CFUNCTYPE(c_int)]
 lgfxd.gfxd_macro_fn.restype = None
-def gfxd_macro_fn(fn: Callable[[], int]) -> None:
+def gfxd_macro_fn(fn: Union[Callable[[], int], None]) -> None:
     """
     Set fn to be the macro handler function, compatible with the C function type
         int gfxd_macro_fn_t(void)
@@ -431,12 +457,14 @@ def gfxd_macro_fn(fn: Callable[[], int]) -> None:
     fn can be None, in which case the handler is reset to the default.
     If `fn` returns a value other than 0, execution stops (see `gfxd_execute`).
     """
-    if fn is None:
-        lgfxd.gfxd_macro_fn(None)
-    else:
-        cb = CFUNCTYPE(c_int)(fn)
+    cb_type = CFUNCTYPE(c_int)
+    if fn is not None:
+        cb = cb_type(fn)
         __gfxd_buffers_callbacks.update({gfxd_macro_fn : cb})
         lgfxd.gfxd_macro_fn(cb)
+    else:
+        lgfxd.gfxd_macro_fn(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_macro_fn, None)
 
 lgfxd.gfxd_arg_dflt.argtypes = [c_int]
 lgfxd.gfxd_arg_dflt.restype = None
@@ -451,7 +479,7 @@ def gfxd_arg_dflt(arg_num: int) -> None:
 
 lgfxd.gfxd_arg_fn.argtypes = [CFUNCTYPE(None, c_int)]
 lgfxd.gfxd_arg_fn.restype = None
-def gfxd_arg_fn(fn: Callable[[int], None]) -> None:
+def gfxd_arg_fn(fn: Union[Callable[[int], None], None]) -> None:
     """
     Set fn to be the argument handler function, called by gfxd_macro_dflt, for each
     argument in the current macro, not counting the dynamic display list pointer if
@@ -462,12 +490,14 @@ def gfxd_arg_fn(fn: Callable[[int], None]) -> None:
     the default. This only affects the output of gfxd_macro_dflt, and has no
     observable effect if gfxd_macro_dflt is overridden (not extended).
     """
-    if fn is None:
-        lgfxd.gfxd_arg_fn(None)
-        return
-    cb = CFUNCTYPE(None, c_int)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_arg_fn : cb})
-    lgfxd.gfxd_arg_fn(cb)
+    cb_type = CFUNCTYPE(None, c_int)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_arg_fn : cb})
+        lgfxd.gfxd_arg_fn(cb)
+    else:
+        lgfxd.gfxd_arg_fn(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_arg_fn, None)
 
 # ====================================================================
 #   Argument Callbacks
@@ -493,7 +523,7 @@ def gfxd_arg_callbacks(arg_num: int) -> int:
 
 lgfxd.gfxd_tlut_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32, c_int32)]
 lgfxd.gfxd_tlut_callback.restype = None
-def gfxd_tlut_callback(fn: Callable[[int, int, int], int]) -> None:
+def gfxd_tlut_callback(fn: UnionCallable[[int, int, int], int]) -> None:
     """
     Set the callback function for palette arguments, compatible with the C function type
         int gfxd_tlut_fn_t(uint32_t tlut, int32_t idx, int32_t count)
@@ -502,13 +532,14 @@ def gfxd_tlut_callback(fn: Callable[[int, int, int], int]) -> None:
 
     The palette index is in idx and the number of colors in count.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32, c_int32)(fn)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32, c_int32)
+    cb = cb_type(fn)
     __gfxd_buffers_callbacks.update({gfxd_tlut_callback : cb})
     lgfxd.gfxd_tlut_callback(cb)
 
 lgfxd.gfxd_timg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32, c_int32, c_int32)]
 lgfxd.gfxd_timg_callback.restype = None
-def gfxd_timg_callback(fn: Callable[[int, int, int, int, int, int], int]) -> None:
+def gfxd_timg_callback(fn: Union[Callable[[int, int, int, int, int, int], int], None]) -> None:
     """
     Set the callback function for texture arguments, compatible with the C function type
         int gfxd_timg_fn_t(uint32_t timg, int32_t fmt, int32_t siz, int32_t width, int32_t height, int32_t pal)
@@ -518,13 +549,18 @@ def gfxd_timg_callback(fn: Callable[[int, int, int, int, int, int], int]) -> Non
     The image format is in fmt and siz, the dimensions in width and height, and the
     palette index in pal.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32, c_int32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_timg_callback : cb})
-    lgfxd.gfxd_timg_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32, c_int32, c_int32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_timg_callback : cb})
+        lgfxd.gfxd_timg_callback(cb)
+    else:
+        lgfxd.gfxd_timg_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_timg_callback, None)
 
 lgfxd.gfxd_cimg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32)]
 lgfxd.gfxd_cimg_callback.restype = None
-def gfxd_cimg_callback(fn: Callable[[int, int, int, int], int]) -> None:
+def gfxd_cimg_callback(fn: Union[Callable[[int, int, int, int], int], None]) -> None:
     """
     Set the callback function for frame buffer arguments, compatible with the C function type
         int gfxd_cimg_fn_t(uint32_t cimg, int32_t fmt, int32_t siz, int32_t width)
@@ -533,52 +569,72 @@ def gfxd_cimg_callback(fn: Callable[[int, int, int, int], int]) -> None:
 
     The image format is in fmt and siz, and the horizontal resolution in width.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_cimg_callback : cb})
-    lgfxd.gfxd_cimg_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32, c_int32, c_int32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_cimg_callback : cb})
+        lgfxd.gfxd_cimg_callback(cb)
+    else:
+        lgfxd.gfxd_cimg_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_cimg_callback, None)
 
 lgfxd.gfxd_zimg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_zimg_callback.restype = None
-def gfxd_zimg_callback(fn: Callable[[int], int]) -> None:
+def gfxd_zimg_callback(fn: Union[Callable[[int], int], None]) -> None:
     """
     Set the callback function for depth buffer arguments, compatible with the C function type
         int gfxd_zimg_fn_t(uint32_t zimg)
 
     The argument type is GfxdArgType.Zimg.
     """
-    cb = CFUNCTYPE(c_int, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_zimg_callback : cb})
-    lgfxd.gfxd_zimg_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_zimg_callback : cb})
+        lgfxd.gfxd_zimg_callback(cb)
+    else:
+        lgfxd.gfxd_zimg_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_zimg_callback, None)
 
 lgfxd.gfxd_dl_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_dl_callback.restype = None
-def gfxd_dl_callback(fn: Callable[[int], int]) -> None:
+def gfxd_dl_callback(fn: Union[Callable[[int], int], None]) -> None:
     """
     Set the callback function for display list arguments, compatible with the C function type
         int gfxd_dl_fn_t(uint32_t dl)
 
     The argument type is GfxdArgType.Dl.
     """
-    cb = CFUNCTYPE(c_int, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_dl_callback : cb})
-    lgfxd.gfxd_dl_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_dl_callback : cb})
+        lgfxd.gfxd_dl_callback(cb)
+    else:
+        lgfxd.gfxd_dl_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_dl_callback, None)
 
 lgfxd.gfxd_mtx_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_mtx_callback.restype = None
-def gfxd_mtx_callback(fn: Callable[[int], int]) -> None:
+def gfxd_mtx_callback(fn: Union[Callable[[int], int], None]) -> None:
     """
     Set the callback function for matrix arguments, compatible with the C function type
         int gfxd_mtx_fn_t(uint32_t mtx)
 
     The argument type is GfxdArgType.Mtxptr.
     """
-    cb = CFUNCTYPE(c_int, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_mtx_callback : cb})
-    lgfxd.gfxd_mtx_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_mtx_callback : cb})
+        lgfxd.gfxd_mtx_callback(cb)
+    else:
+        lgfxd.gfxd_mtx_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_mtx_callback, None)
 
 lgfxd.gfxd_lookat_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
 lgfxd.gfxd_lookat_callback.restype = None
-def gfxd_lookat_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_lookat_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for lookat array arguments, compatible with the C function type
         int gfxd_lookat_fn_t(uint32_t lookat, int32_t count)
@@ -587,26 +643,36 @@ def gfxd_lookat_callback(fn: Callable[[int, int], int]) -> None:
 
     The number of lookat structures (1 or 2) is in count.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_lookat_callback : cb})
-    lgfxd.gfxd_lookat_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_lookat_callback : cb})
+        lgfxd.gfxd_lookat_callback(cb)
+    else:
+        lgfxd.gfxd_lookat_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_lookat_callback, None)
 
 lgfxd.gfxd_light_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_light_callback.restype = None
-def gfxd_light_callback(fn: Callable[[int], int]) -> None:
+def gfxd_light_callback(fn: Union[Callable[[int], int], None]) -> None:
     """
     Set the callback function for diffuse (`Light *`) or ambient (`Ambient *`) light arguments.
         int gfxd_light_fn_t(uint32_t light)
 
     The argument type is GfxdArgType.Lightptr.
     """
-    cb = CFUNCTYPE(c_int, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_light_callback : cb})
-    lgfxd.gfxd_light_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_light_callback : cb})
+        lgfxd.gfxd_light_callback(cb)
+    else:
+        lgfxd.gfxd_light_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_light_callback, None)
 
 lgfxd.gfxd_lightsn_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
 lgfxd.gfxd_lightsn_callback.restype = None
-def gfxd_lightsn_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_lightsn_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for Lights_M_ arguments.
         int gfxd_lightsn_fn_t(uint32_t lightsn, int32_t num)
@@ -615,13 +681,18 @@ def gfxd_lightsn_callback(fn: Callable[[int, int], int]) -> None:
 
     The number of diffuse lights used is in num.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_lightsn_callback : cb})
-    lgfxd.gfxd_lightsn_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_lightsn_callback : cb})
+        lgfxd.gfxd_lightsn_callback(cb)
+    else:
+        lgfxd.gfxd_lightsn_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_lightsn_callback, None)
 
 lgfxd.gfxd_seg_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
 lgfxd.gfxd_seg_callback.restype = None
-def gfxd_seg_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_seg_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for segment base arguments, compatible with the C function type
         int gfxd_seg_fn_t(uint32_t seg, int32_t num)
@@ -630,13 +701,18 @@ def gfxd_seg_callback(fn: Callable[[int, int], int]) -> None:
 
     The segment number is in num.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_seg_callback : cb})
-    lgfxd.gfxd_seg_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_seg_callback : cb})
+        lgfxd.gfxd_seg_callback(cb)
+    else:
+        lgfxd.gfxd_seg_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_seg_callback, None)
 
 lgfxd.gfxd_vtx_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32)]
 lgfxd.gfxd_vtx_callback.restype = None
-def gfxd_vtx_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_vtx_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for vertex array arguments, compatible with the C function type
         int gfxd_vtx_fn_t(uint32_t vtx, int32_t num)
@@ -645,26 +721,36 @@ def gfxd_vtx_callback(fn: Callable[[int, int], int]) -> None:
 
     The number of vertex structures is in num.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_int32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_vtx_callback : cb})
-    lgfxd.gfxd_vtx_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_int32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_vtx_callback : cb})
+        lgfxd.gfxd_vtx_callback(cb)
+    else:
+        lgfxd.gfxd_vtx_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_vtx_callback, None)
 
 lgfxd.gfxd_vp_callback.argtypes = [CFUNCTYPE(c_int, c_uint32)]
 lgfxd.gfxd_vp_callback.restype = None
-def gfxd_vp_callback(fn: Callable[[int], int]) -> None:
+def gfxd_vp_callback(fn: Union[Callable[[int], int] , None]) ->None:
     """
     Set the callback function for viewport arguments, compatible with the C function type
         int gfxd_vp_fn_t(uint32_t vp)
 
     The argument type is GfxdArgType.Vp.
     """
-    cb = CFUNCTYPE(c_int, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_vp_callback : cb})
-    lgfxd.gfxd_vp_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_vp_callback : cb})
+        lgfxd.gfxd_vp_callback(cb)
+    else:
+        lgfxd.gfxd_vp_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_vp_callback, None)
 
 lgfxd.gfxd_uctext_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_uint32)]
 lgfxd.gfxd_uctext_callback.restype = None
-def gfxd_uctext_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_uctext_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for microcode text arguments, compatible with the C function type
         int gfxd_uctext_fn_t(uint32_t text, uint32_t size)
@@ -673,13 +759,18 @@ def gfxd_uctext_callback(fn: Callable[[int, int], int]) -> None:
 
     The size of the text segment is in size.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_uctext_callback : cb})
-    lgfxd.gfxd_uctext_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_uctext_callback : cb})
+        lgfxd.gfxd_uctext_callback(cb)
+    else:
+        lgfxd.gfxd_uctext_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_uctext_callback, None)
 
 lgfxd.gfxd_ucdata_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_uint32)]
 lgfxd.gfxd_ucdata_callback.restype = None
-def gfxd_ucdata_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_ucdata_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for microcode data arguments, compatible with the C function type
         int gfxd_ucdata_fn_t(uint32_t data, uint32_t size)
@@ -688,13 +779,18 @@ def gfxd_ucdata_callback(fn: Callable[[int, int], int]) -> None:
 
     The size of the data segment is in size.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_ucdata_callback : cb})
-    lgfxd.gfxd_ucdata_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_ucdata_callback : cb})
+        lgfxd.gfxd_ucdata_callback(cb)
+    else:
+        lgfxd.gfxd_ucdata_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_ucdata_callback, None)
 
 lgfxd.gfxd_dram_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_uint32)]
 lgfxd.gfxd_dram_callback.restype = None
-def gfxd_dram_callback(fn: Callable[[int, int], int]) -> None:
+def gfxd_dram_callback(fn: Union[Callable[[int, int], int], None]) -> None:
     """
     Set the callback function for generic pointer arguments, compatible with the C function type
         int gfxd_dram_fn_t(uint32_t dram, uint32_t size)
@@ -703,9 +799,14 @@ def gfxd_dram_callback(fn: Callable[[int, int], int]) -> None:
 
     The size of the data is in size.
     """
-    cb = CFUNCTYPE(c_int, c_uint32, c_uint32)(fn)
-    __gfxd_buffers_callbacks.update({gfxd_dram_callback : cb})
-    lgfxd.gfxd_dram_callback(cb)
+    cb_type = CFUNCTYPE(c_int, c_uint32, c_uint32)
+    if fn is not None:
+        cb = cb_type(fn)
+        __gfxd_buffers_callbacks.update({gfxd_dram_callback : cb})
+        lgfxd.gfxd_dram_callback(cb)
+    else:
+        lgfxd.gfxd_dram_callback(cb_type())
+        __gfxd_buffers_callbacks.pop(gfxd_dram_callback, None)
 
 # ====================================================================
 #   General Settings
@@ -755,8 +856,9 @@ def gfxd_dynamic(arg: str) -> None:
     Also affects the result of gfxd_macro_name, as it will return either the dynamic or static version of the macro name as selected by this setting.
     """
     if arg is None:
-        lgfxd.gfxd_dynamic(None)
-        return None
+        lgfxd.gfxd_dynamic(c_char_p())
+        __gfxd_buffers_callbacks.pop(gfxd_dynamic, None)
+        return
     # we want to keep this string around for a while, so buffer it
     buffer = create_string_buffer(arg.encode("utf-8"), len(arg.encode("utf-8")))
     __gfxd_buffers_callbacks.update({gfxd_dynamic : buffer})
@@ -880,7 +982,7 @@ def gfxd_foreach_pkt(fn: Callable[[], int]) -> int:
     is returned. If `fn` is null no processing is done and 0 is returned.
     """
     cb = CFUNCTYPE(c_int)(fn)
-    __gfxd_buffers_callbacks.update({10000.5 : cb})
+    # gfxd_foreach_pkt does not store `fn`, no need to keep the callback alive
     return lgfxd.gfxd_foreach_pkt(cb)
 
 lgfxd.gfxd_macro_data.argtypes = None

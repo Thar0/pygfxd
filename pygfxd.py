@@ -1014,7 +1014,7 @@ def gfxd_arg_value(arg_num: int) -> Union[Tuple[int, int, float], None]:
     else:
         return None
 
-lgfxd.gfxd_value_by_type.argtypes = None
+lgfxd.gfxd_value_by_type.argtypes = [c_int, c_int]
 lgfxd.gfxd_value_by_type.restype = POINTER(c_uint32)
 def gfxd_value_by_type(type: GfxdArgType, idx: int) -> Union[Tuple[int, int, float], None]:
     """

@@ -370,7 +370,7 @@ def gfxd_output_buffer(buf: Union[bytes, None], size: int = -1) -> Union[c_void_
     else:
         if size > 0:
             raise ValueError("Cannot use a non-zero size with a null buffer")
-        lgfxd.gfxd_output_buffer(c_void_p(), 0)
+        lgfxd.gfxd_output_buffer(c_char_p(), 0)
         __gfxd_buffers_callbacks.pop(gfxd_output_buffer, None)
         return None
 
@@ -523,7 +523,7 @@ def gfxd_arg_callbacks(arg_num: int) -> int:
 
 lgfxd.gfxd_tlut_callback.argtypes = [CFUNCTYPE(c_int, c_uint32, c_int32, c_int32)]
 lgfxd.gfxd_tlut_callback.restype = None
-def gfxd_tlut_callback(fn: UnionCallable[[int, int, int], int]) -> None:
+def gfxd_tlut_callback(fn: Union[Callable[[int, int, int], int], None]) -> None:
     """
     Set the callback function for palette arguments, compatible with the C function type
         int gfxd_tlut_fn_t(uint32_t tlut, int32_t idx, int32_t count)

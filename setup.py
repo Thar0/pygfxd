@@ -12,6 +12,10 @@ class CTypesExtension(Extension):
 class build_ext(build_ext_orig):
     def build_extension(self, ext):
         self._ctypes = isinstance(ext, CTypesExtension)
+        if self.compiler.compiler_type == "msvc":
+            for e in self.extensions:
+                e.extra_compile_args=["/std:c11"]
+                e.extra_link_args=["/DEF:pygfxd.def"]
         return super().build_extension(ext)
 
     def get_export_symbols(self, ext):
@@ -29,7 +33,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="pygfxd",
-    version="1.0.1",
+    version="1.0.2",
     author="Tharo",
     description="Python bindings for libgfxd",
     long_description=long_description,
@@ -48,6 +52,11 @@ setup(
                 "libgfxd/uc.c",
             ],
             include_dirs=["libgfxd"],
+            extra_compile_args = [
+                "-std=c11",
+                "-Wall",
+                "-g",
+            ],
         ),
     ],
     cmdclass={'build_ext': build_ext},

@@ -9,10 +9,12 @@ NM := $(CROSS)nm
 C_FILES := f3dex2.c
 BIN_FILES := $(C_FILES:.c=.bin)
 
-all: $(BIN_FILES)
+bin_files: $(BIN_FILES)
+
+test: bin_files
 	./test.py
 
-.PHONY: all
+.PHONY: bin_files test
 
 %.bin: %.o
 	$(OBJCOPY) -O binary -j .data $< $@

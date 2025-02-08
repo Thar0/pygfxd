@@ -4,6 +4,18 @@ name: Build and upload to PyPI
 on: [push, pull_request]
 
 jobs:
+  run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile libgfxd
+        run: make -C libgfxd
+
+      - name: Run tests
+        run: ./test/test.py
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

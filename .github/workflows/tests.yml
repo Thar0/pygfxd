@@ -1,0 +1,23 @@
+name: Run tests
+
+# Build on every branch push, tag push, and pull request change:
+on: [push, pull_request]
+
+jobs:
+  run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile libgfxd
+        run: gcc -shared -fPIC libgfxd/gfxd.c libgfxd/uc_f3d.c libgfxd/uc_f3db.c libgfxd/uc_f3dex.c libgfxd/uc_f3dex2.c libgfxd/uc_f3dexb.c libgfxd/uc.c -o libgfxd.so
+
+      - name: Install cross compiler and binutils
+        run: sudo apt-get install gcc-mips-linux-gnu binutils-mips-linux-gnu
+
+      - name: Build test data
+        run: make -C test
+
+      - name: Run tests
+        run: ./test/test.py

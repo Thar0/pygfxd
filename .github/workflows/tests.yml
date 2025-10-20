@@ -8,7 +8,7 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Compile libgfxd
         run: gcc -shared -fPIC libgfxd/gfxd.c libgfxd/uc_f3d.c libgfxd/uc_f3db.c libgfxd/uc_f3dex.c libgfxd/uc_f3dex2.c libgfxd/uc_f3dexb.c libgfxd/uc.c -o libgfxd.so
